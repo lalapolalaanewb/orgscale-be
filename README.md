@@ -144,6 +144,12 @@ x-api-key: your-secret-api-key
 
 Demonstrates three implementations to calculate the sum from `1` to `n`.
 
+| Implementation           | Type      | Complexity             | Notes                               |
+| ------------------------ | --------- | ---------------------- | ----------------------------------- |
+| A - Iterative Loop       | Loop      | Time: O(n) Space: O(1) | Readable, beginner-friendly         |
+| B - Mathematical Formula | Formula   | Time: O(1) Space: O(1) | Fastest, no loop required           |
+| C - Recursion            | Recursion | Time: O(n) Space: O(n) | Elegant, but risk of stack overflow |
+
 ```
 GET /prob-4/:num
 ```
@@ -165,35 +171,13 @@ Returns an HTML page comparing:
 
 ### 📄 Problem 5 – Content Management API
 
-#### Get contents (with filters & pagination)
-
-```
-GET /prob-5?status=published&page=0&limit=30
-```
-
-#### Get single content (cached with Redis)
-
-```
-GET /prob-5/:slug
-```
-
-#### Create content
-
-```
-POST /prob-5/new
-```
-
-#### Update content
-
-```
-PATCH /prob-5/:slug
-```
-
-#### Delete content
-
-```
-DELETE /prob-5/:slug
-```
+| Method | Endpoint        | Description                                                      |
+| ------ | --------------- | ---------------------------------------------------------------- |
+| GET    | `/prob-5`       | List contents (with optional filters: `status`, `page`, `limit`) |
+| GET    | `/prob-5/:slug` | Get content details                                              |
+| POST   | `/prob-5/new`   | Create new content                                               |
+| PATCH  | `/prob-5/:slug` | Update content                                                   |
+| DELETE | `/prob-5/:slug` | Delete content                                                   |
 
 ---
 
@@ -332,19 +316,117 @@ Check Redis logs to observe cache hits and invalidation behavior.
 
 ---
 
+### 📄 Problem 6 – Architecture of Scoreboard Live Update Module
+
+#### Overview
+
+- Maintain **top 10 user scores**
+- Update scores **live** when users complete actions
+- Prevent unauthorized score updates
+
+---
+
+#### API Specification
+
+**1️⃣ Update Score**
+
+```http
+POST /api/scores/update
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+Request body:
+
+```json
+{
+  "user_id": "string",
+  "action_id": "string"
+}
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "message": "Score updated successfully",
+  "new_score": 125
+}
+```
+
+**2️⃣ Get Top 10 Scores**
+
+```http
+GET /api/scores/top10
+Authorization: Bearer <token>
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "top10": [
+    { "user_id": "user123", "score": 250 },
+    { "user_id": "user456", "score": 240 }
+  ]
+}
+```
+
+---
+
+#### Live Update Flow
+
+```mermaid
+flowchart TD
+    A[User completes action] --> B[Frontend triggers API call: POST /api/scores/update]
+    B --> C[API Server: Validate Authorization & Request]
+    C --> D[Compute new score & update Database]
+    D --> E[Publish score update to Redis Pub/Sub or Message Queue]
+    E --> F[WebSocket/SSE pushes new top 10 scoreboard]
+    F --> G[Frontend receives update and re-renders scoreboard]
+    G --> H[User sees updated scores instantly]
+
+    subgraph "Sample Data Flow"
+        D -->|user_id: 'user123', new_score: 125| E
+        E -->|top10 update: [{'user_id': 'user123', 'score':125}, ...]| F
+    end
+```
+
+---
+
+#### Security Considerations
+
+- Only authorized users can update scores
+- Server-side score computation prevents cheating
+- Rate limiting and replay protection
+- Audit logs recommended for score changes
+
+---
+
+#### Improvements & Future Considerations
+
+- Event sourcing for full action history
+- Anti-cheat heuristics
+- Snapshot caching for leaderboard queries
+- Horizontal scaling using message brokers
+
+---
+
+#### ⚡ Notes
+
+- MongoDB used for persistent content & scores
+- Redis used for caching and live update pub/sub
+- Express middleware validates API key for security
+- Typescript provides type safety throughout
+
+---
+
 ## 📄 License
 
 MIT License
 
 ---
-
-## 🙌 Notes
-
-This project is suitable for:
-
-- Backend technical tests
-- System design demonstrations
-- API & caching examples
-- Dockerized Node.js services
 
 Feel free to fork, improve, or adapt for production use.

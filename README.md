@@ -318,11 +318,37 @@ Check Redis logs to observe cache hits and invalidation behavior.
 
 ### 📄 Problem 6 – Architecture of Scoreboard Live Update Module
 
-#### Overview
+#### 📝 Overview
 
-- Maintain **top 10 user scores**
-- Update scores **live** when users complete actions
-- Prevent unauthorized score updates
+- Module Name: **Scoreboard Live Update**
+- Purpose: Maintain a **top 10 user scoreboard** that updates in real time whenever users complete actions.
+- Scope:
+  - Accept authorized score updates from the frontend
+  - Update the user’s score in a persistent database
+  - Serve the top 10 users via API and live updates
+- Non-Scope:
+  - Frontend implementation of the scoreboard
+  - Details of the user action (only the fact that it was completed)
+  - Analytics beyond the top 10 scoreboard
+
+---
+
+#### 🎯 Functional Requirements
+
+1. Users complete an action → triggers score increment.
+2. Score updates are **authorized** to prevent cheating.
+3. Scoreboard shows **top 10 users**, sorted by score descending.
+4. Scoreboard updates **live** on the frontend.
+
+---
+
+#### ⚡ Non-Functional Requirements
+
+- **Performance:** Updates should be reflected within 1–2 seconds.
+- **Scalability:** Support thousands of concurrent users.
+- **Reliability:** Prevent score inconsistencies, even under high load.
+- **Security:** Prevent unauthorized score tampering.
+- **Auditability:** Log score changes for potential review.
 
 ---
 
@@ -396,30 +422,32 @@ flowchart TD
 
 ---
 
-#### Security Considerations
+#### 🔒 Security Considerations
 
-- Only authorized users can update scores
-- Server-side score computation prevents cheating
-- Rate limiting and replay protection
-- Audit logs recommended for score changes
+1. **Authentication**: Only authorized users can update scores.
+2. **Validation**: `user_id` and `action_id` must be verified server-side.
+3. **Rate Limiting**: Prevent spamming score updates.
+4. **Server-side Authority**: Scores are computed server-side; clients cannot modify scores directly.
+5. **Replay Protection**: Ensure actions cannot be submitted multiple times to inflate scores.
 
 ---
 
-#### Improvements & Future Considerations
+#### 📈 Improvements & Future Considerations
 
-- Event sourcing for full action history
-- Anti-cheat heuristics
-- Snapshot caching for leaderboard queries
-- Horizontal scaling using message brokers
+- Add **audit logs** for all score changes.
+- Use **event sourcing** for full action history.
+- Horizontal scaling with **message broker** (Redis, Kafka) for live updates.
+- Implement **anti-cheat heuristics**, e.g., detect unusually high score increments.
+- Allow **snapshot caching** for frequent leaderboard queries.
+- Optional: add **pagination or filters** for extended leaderboard beyond top 10.
 
 ---
 
 #### ⚡ Notes
 
-- MongoDB used for persistent content & scores
-- Redis used for caching and live update pub/sub
-- Express middleware validates API key for security
-- Typescript provides type safety throughout
+- Backend engineers should choose suitable storage (e.g., MongoDB, PostgreSQL) for persistent scores.
+- Real-time delivery can be implemented using **WebSocket** or **Server-Sent Events**, depending on frontend needs.
+- Focus on **low-latency updates** while ensuring **data consistency and security**.
 
 ---
 
